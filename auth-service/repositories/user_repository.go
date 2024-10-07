@@ -1,0 +1,79 @@
+package repositories
+
+import (
+	"auth-service/models"
+	"context"
+	"log"
+	"time"
+
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
+)
+
+type UserRepository struct {
+	collection *mongo.Collection
+}
+
+func NewUserRepository(db *mongo.Client) *UserRepository {
+	collection := db.Database("music-platform-dev").Collection("users")
+	return &UserRepository{collection}
+}
+
+// FindAll finds all users from MongoDB collection
+func (r *UserRepository) FindAll() ([]models.User, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	cursor, err := r.collection.Find(ctx, bson.M{})
+	if err != nil {
+		log.Println("Failed to retrieve users: ", err)
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	var users []models.User
+	for cursor.Next(ctx) {
+		var user models.User
+		err := cursor.Decode(&user)
+		if err != nil {
+			log.Println("Failed to decode user: ", err)
+			return nil, err
+		}
+		users = append(users, user)
+	}
+
+	return users, nil
+}
+
+// CreateUser inserts a new user into the MongoDB collection
+func (r *UserRepository) CreateUser(user *models.User) (*mongo.InsertOneResult, error) {
+	user.ID = primitive.NewObjectID()
+	user.CreatedAt = time.Now()
+	user.UpdatedAt = time.Now()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	result, err := r.collection.InsertOne(ctx, user)
+	return result, err
+}
+
+// FindUserByEmail finds a user by email from the MongoDB collection
+func (r *UserRepository) FindByEmail(email string) (*models.User, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	var user models.User
+
+	err := r.collection.FindOne(ctx, bson.M{"email": email}).Decode(&user)
+	if err != nil {
+		log.Println("Failed to retrieve user: ", err)
+		return nil, err
+	}
+
+	return &user, nil
+}
+
+// ErrNoDocuments is returned when no documents are found
+var ErrNoDocuments = mongo.ErrNoDocuments

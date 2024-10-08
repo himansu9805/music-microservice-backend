@@ -16,7 +16,7 @@ func NewUserService(userRepo *repositories.UserRepository) *UserService {
 	return &UserService{userRepo: userRepo}
 }
 
-func (s *UserService) CreateUser(user *models.User) error {
+func (s *UserService) CreateUser(user *models.UserRegister) error {
 	existingUser, err := s.userRepo.FindByEmail(user.Email)
 	if err != nil && err != repositories.ErrNoDocuments {
 		fmt.Println("Error finding user by email: ", err)
@@ -30,9 +30,8 @@ func (s *UserService) CreateUser(user *models.User) error {
 	if err != nil {
 		return err
 	}
-	user.Password = hashedPassword
 
-	_, err = s.userRepo.CreateUser(user)
+	_, err = s.userRepo.CreateUser(user, hashedPassword)
 	return err
 }
 
@@ -51,4 +50,22 @@ func (s *UserService) AuthenticateUser(email, password string) (*models.User, er
 	}
 
 	return user, nil
+}
+
+func (s *UserService) UpdateUser(user *models.UserUpdate) error {
+	objectID, err := s.userRepo.FindByEmail(user.Email)
+	if err != nil {
+		return err
+	}
+
+	if objectID == nil {
+		return errors.New("User not found")
+	}
+
+	_, err = s.userRepo.UpdateUser(user)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

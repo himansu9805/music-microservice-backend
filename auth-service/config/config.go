@@ -6,6 +6,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/joho/godotenv"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -20,12 +21,18 @@ func GetEnv(key, defaultValue string) string {
 }
 
 func ConnectMongoDB() *mongo.Client {
-	mongoURI := GetEnv("MONGO_URI", "http://localhost:27017")
+	err := godotenv.Load("/home/user/music-microservice-backend/.env")
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
+
+	mongoURI := GetEnv("MONGO_URI", "mongo://localhost:27017")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	clientOptions := options.Client().ApplyURI(mongoURI)
+	serverAPI := options.ServerAPI(options.ServerAPIVersion1)
+	clientOptions := options.Client().ApplyURI(mongoURI).SetServerAPIOptions(serverAPI)
 	client, err := mongo.Connect(ctx, clientOptions)
 	if err != nil {
 		log.Fatal(err)

@@ -33,5 +33,6 @@ func main() {
 		port = "8080"
 	}
 	log.Printf("Starting auth-service on port %s", port)
+	log.Printf("Complete address: http://localhost:%s", port)
 	router.Run(":" + port)
 }

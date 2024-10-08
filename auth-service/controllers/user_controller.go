@@ -17,7 +17,7 @@ func NewUserController(service *services.UserService) *UserController {
 }
 
 func (uc *UserController) CreateUser(c *gin.Context) {
-	var user models.User
+	var user models.UserRegister
 
 	// Bind JSON body to user model
 	if err := c.ShouldBindJSON(&user); err != nil {
@@ -37,7 +37,7 @@ func (uc *UserController) CreateUser(c *gin.Context) {
 func (uc *UserController) LoginUser(c *gin.Context) {
 	var login models.UserLogin
 
-	// Bind JSON body to login model
+	// Bind JSON body to user login model
 	if err := c.ShouldBindJSON(&login); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -51,4 +51,22 @@ func (uc *UserController) LoginUser(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "User authenticated successfully", "user": user})
+}
+
+func (uc *UserController) UpdateUser(c *gin.Context) {
+	var updateUser models.UserUpdate
+
+	// Bind JSON body to user update model
+	if err := c.ShouldBindJSON(&updateUser); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	err := uc.userService.UpdateUser(updateUser)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "User updated successfully", "user": user})
 }

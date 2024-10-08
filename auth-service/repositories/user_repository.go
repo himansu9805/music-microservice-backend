@@ -47,15 +47,20 @@ func (r *UserRepository) FindAll() ([]models.User, error) {
 }
 
 // CreateUser inserts a new user into the MongoDB collection
-func (r *UserRepository) CreateUser(user *models.User) (*mongo.InsertOneResult, error) {
-	user.ID = primitive.NewObjectID()
-	user.CreatedAt = time.Now()
-	user.UpdatedAt = time.Now()
+func (r *UserRepository) CreateUser(user *models.UserRegister, hashedPassword []byte) (*mongo.InsertOneResult, error) {
+	var newUser models.User = models.User{
+		ID:        primitive.NewObjectID(),
+		Email:     user.Email,
+		Name:      user.Name,
+		Password:  hashedPassword,
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	result, err := r.collection.InsertOne(ctx, user)
+	result, err := r.collection.InsertOne(ctx, newUser)
 	return result, err
 }
 
@@ -73,6 +78,20 @@ func (r *UserRepository) FindByEmail(email string) (*models.User, error) {
 	}
 
 	return &user, nil
+}
+
+// UpdateUser updates a user in the MongoDB collection
+func (r *UserRepository) UpdateUser(user *models.UserUpdate) (*mongo.UpdateResult, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	result, err := r.collection.UpdateOne(ctx, bson.M{"email": user.Email}, bson.M{"$set": bson.M{"name": user.Name}})
+	if err != nil {
+		log.Println("Failed to retrieve user: ", err)
+		return nil, err
+	}
+
+	return result, nil
 }
 
 // ErrNoDocuments is returned when no documents are found

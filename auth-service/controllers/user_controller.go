@@ -62,11 +62,11 @@ func (uc *UserController) UpdateUser(c *gin.Context) {
 		return
 	}
 
-	err := uc.userService.UpdateUser(updateUser)
+	err := uc.userService.UpdateUser(&updateUser)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "User updated successfully", "user": user})
+	c.JSON(http.StatusOK, gin.H{"message": "User updated successfully", "user": updateUser})
 }

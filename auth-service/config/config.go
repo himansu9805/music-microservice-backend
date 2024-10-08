@@ -21,7 +21,7 @@ func GetEnv(key, defaultValue string) string {
 }
 
 func ConnectMongoDB() *mongo.Client {
-	err := godotenv.Load("/home/user/music-microservice-backend/.env")
+	err := godotenv.Load("../.env")
 	if err != nil {
 		log.Fatal("Error loading .env file")
 	}

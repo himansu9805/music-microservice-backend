@@ -13,4 +13,5 @@ func SetupRoutes(router *gin.Engine, userService *services.UserService) {
 	// Route for creating a new user
 	router.POST("/users/register", userController.CreateUser)
 	router.POST("/users/login", userController.LoginUser)
+	router.POST("/users/update", userController.UpdateUser)
 }

@@ -20,6 +20,9 @@ func NewUserRepository(db *mongo.Client) *UserRepository {
 	return &UserRepository{collection}
 }
 
+// ErrNoDocuments is returned when no documents are found
+var ErrNoDocuments = mongo.ErrNoDocuments
+
 // FindAll finds all users from MongoDB collection
 func (r *UserRepository) FindAll() ([]models.User, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -94,5 +97,23 @@ func (r *UserRepository) UpdateUser(user *models.UserUpdate) (*mongo.UpdateResul
 	return result, nil
 }
 
-// ErrNoDocuments is returned when no documents are found
-var ErrNoDocuments = mongo.ErrNoDocuments
+func (r *UserRepository) FindByID(id string) (*models.UserProfile, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	var user models.UserProfile
+
+	objectID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		log.Println("ID is invalid: ", err)
+		return nil, err
+	}
+
+	err = r.collection.FindOne(ctx, bson.M{"_id": objectID}).Decode(&user)
+	if err != nil {
+		log.Println("Failed to retrieve user: ", err)
+		return nil, err
+	}
+
+	return &user, nil
+}

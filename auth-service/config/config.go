@@ -13,6 +13,11 @@ import (
 
 // GetEnv fetches environment variables with a fallback default value.
 func GetEnv(key, defaultValue string) string {
+	err := godotenv.Load("../.env")
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
+
 	value := os.Getenv(key)
 	if value == "" {
 		return defaultValue
@@ -21,11 +26,6 @@ func GetEnv(key, defaultValue string) string {
 }
 
 func ConnectMongoDB() *mongo.Client {
-	err := godotenv.Load("../.env")
-	if err != nil {
-		log.Fatal("Error loading .env file")
-	}
-
 	mongoURI := GetEnv("MONGO_URI", "mongo://localhost:27017")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)

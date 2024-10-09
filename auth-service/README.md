@@ -6,7 +6,7 @@ This microservice is responsible for handling auth-service-specific operations. 
 
 ## Directory Structure
 
-```
+```plaintext
 /auth-service
 ├── cmd
 │   └── server
@@ -30,26 +30,31 @@ This microservice is responsible for handling auth-service-specific operations. 
 ## Running the Service
 
 1. Install dependencies:
+
    ```
    go mod tidy
    ```
 
 2. Run the service:
+
    ```
    go run ./cmd/server/main.go
    ```
 
 3. Build the Docker image:
+
    ```
    docker build -t auth-service .
    ```
 
 4. Run the service with Docker:
+
    ```
    docker run -p 8080:8080 auth-service
    ```
 
 5. **Important:** You may need to source the `~/.profile` manually to apply any new environment variables:
+
    ```
    source ~/.profile
    ```

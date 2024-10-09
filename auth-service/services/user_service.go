@@ -69,3 +69,16 @@ func (s *UserService) UpdateUser(user *models.UserUpdate) error {
 
 	return nil
 }
+
+func (s *UserService) GetProfile(userId string) (*models.UserProfile, error) {
+	user, err := s.userRepo.FindByID(userId)
+	if err != nil {
+		return nil, err
+	}
+
+	if user == nil {
+		return nil, errors.New("User not found")
+	}
+
+	return user, nil
+}

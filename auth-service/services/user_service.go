@@ -59,6 +59,7 @@ func (s *UserService) UpdateUser(user *models.UserUpdate) error {
 	}
 
 	if objectID == nil {
+
 		return errors.New("User not found")
 	}
 

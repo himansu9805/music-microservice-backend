@@ -18,6 +18,11 @@ func SetupRoutes(router *gin.Engine, userService *services.UserService) {
 		userRouter.POST("/login", userController.LoginUser)
 	}
 
+	tokenRouter := router.Group("/token").Use(middlewares.AuthMiddleware())
+	{
+		tokenRouter.GET("/refresh", userController.LoginUser)
+	}
+
 	accountRouter := router.Group("/account").Use(middlewares.AuthMiddleware())
 	{
 		accountRouter.PUT("/update", userController.UpdateUser)

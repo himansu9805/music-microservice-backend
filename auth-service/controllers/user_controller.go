@@ -1,15 +1,14 @@
 package controllers
 
 import (
-	"auth-service/config"
 	"auth-service/models"
 	"auth-service/services"
+	"auth-service/utils"
 	"fmt"
 	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt/v5"
 )
 
 type UserController struct {
@@ -54,25 +53,35 @@ func (uc *UserController) LoginUser(c *gin.Context) {
 		return
 	}
 
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"userId": user.ID,
-		"exp":    time.Now().Add(time.Hour * 3).Unix(),
-	})
+	accessToken, err := utils.GenerateAccessToken(user.ID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
 
-	tokenString, err := token.SignedString([]byte(config.GetEnv("JWT_SECRET", "")))
+	refreshToken, err := utils.GenerateRefreshToken(user.ID.Hex())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
 	http.SetCookie(c.Writer, &http.Cookie{
-		Name:     "jwt",
-		Value:    tokenString,
+		Name:     "accessToken",
+		Value:    accessToken,
 		Expires:  time.Now().Add(time.Hour * 3),
 		Path:     "/",
 		HttpOnly: true,
 		Secure:   true,
 	})
+	http.SetCookie(c.Writer, &http.Cookie{
+		Name:     "refreshToken",
+		Value:    refreshToken,
+		Expires:  time.Now().Add(time.Hour * 24 * 7),
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   true,
+	})
+
 	c.JSON(http.StatusOK, gin.H{"message": "User authenticated successfully", "user": user})
 }
 

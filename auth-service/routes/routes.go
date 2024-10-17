@@ -10,6 +10,7 @@ import (
 
 func SetupRoutes(router *gin.Engine, userService *services.UserService) {
 	userController := controllers.NewUserController(userService)
+	tokenController := controllers.NewTokenController()
 
 	// Route for creating a new user
 	userRouter := router.Group("/users")
@@ -21,7 +22,8 @@ func SetupRoutes(router *gin.Engine, userService *services.UserService) {
 
 	tokenRouter := router.Group("/token")
 	{
-		tokenRouter.GET("/refresh", userController.RefreshUser)
+		tokenRouter.GET("/refresh", tokenController.RefreshAccessToken)
+		tokenRouter.GET("/validate", tokenController.ValidateToken)
 	}
 
 	accountRouter := router.Group("/account").Use(middlewares.AuthMiddleware())

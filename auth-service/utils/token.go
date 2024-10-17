@@ -14,6 +14,23 @@ func generateUniqueTokenID() string {
 	return fmt.Sprintf("%d", time.Now().UnixNano())
 }
 
+func parseToken(tokenString string) (*jwt.Token, jwt.MapClaims, error) {
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		return []byte(config.GetEnv("JWT_SECRET", "")), nil
+	})
+
+	if err != nil {
+		fmt.Println("Error parsing token: ", err)
+		return nil, nil, err
+	}
+
+	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+		return token, claims, nil
+	}
+
+	return nil, nil, fmt.Errorf("invalid token")
+}
+
 func GenerateAccessToken(userId primitive.ObjectID) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"userId": userId,
@@ -49,24 +66,26 @@ func GenerateRefreshToken(userId string) (string, error) {
 	return tokenString, nil
 }
 
-func ValidateAndRefreshToken(refreshToken string) (string, error) {
-	token, err := jwt.Parse(refreshToken, func(token *jwt.Token) (interface{}, error) {
-		return []byte(config.GetEnv("JWT_SECRET", "")), nil
-	})
-
+func ValidateToken(accessToken string) (string, error) {
+	_, claims, err := parseToken(accessToken)
 	if err != nil {
-		fmt.Println("Error parsing token: ", err)
 		return "", err
 	}
 
-	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-		userId := claims["userId"].(string)
-		objectID, err := primitive.ObjectIDFromHex(userId)
-		if err != nil {
-			return "", fmt.Errorf("invalid userId: %v", err)
-		}
-		return GenerateAccessToken(objectID)
+	userId := claims["userId"].(string)
+	return userId, nil
+}
+
+func ValidateAndRefreshToken(refreshToken string) (string, error) {
+	_, claims, err := parseToken(refreshToken)
+	if err != nil {
+		return "", err
 	}
 
-	return "", fmt.Errorf("invalid token")
+	userId := claims["userId"].(string)
+	objectID, err := primitive.ObjectIDFromHex(userId)
+	if err != nil {
+		return "", fmt.Errorf("invalid userId: %v", err)
+	}
+	return GenerateAccessToken(objectID)
 }

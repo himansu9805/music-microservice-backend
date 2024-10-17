@@ -1,14 +1,16 @@
 package controllers
 
 import (
-	"auth-service/models"
-	"auth-service/services"
-	"auth-service/utils"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
+
+	"auth-service/models"
+	"auth-service/services"
+	"auth-service/utils"
 )
 
 type UserController struct {
@@ -115,4 +117,33 @@ func (uc *UserController) GetProfile(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Profile retrieved successfully", "user": userProfile})
+}
+
+func (uc *UserController) RefreshUser(c *gin.Context) {
+	authHeader := c.GetHeader("Authorization")
+	
+
+	if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header missing or invalid"})
+		return
+	}
+
+	refreshToken := strings.TrimPrefix(authHeader, "Bearer ")
+
+	newAccessToken, err := utils.ValidateAndRefreshToken(refreshToken)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid refresh token"})
+		return
+	}
+
+	http.SetCookie(c.Writer, &http.Cookie{
+		Name:     "accessToken",
+		Value:    newAccessToken,
+		Expires:  time.Now().Add(time.Hour * 3),
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   true,
+	})
+
+	c.JSON(http.StatusOK, gin.H{"message": "User token refreshed successfully"})
 }

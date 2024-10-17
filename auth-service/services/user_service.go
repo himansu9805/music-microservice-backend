@@ -1,11 +1,12 @@
 package services
 
 import (
+	"errors"
+	"fmt"
+
 	"auth-service/models"
 	"auth-service/repositories"
 	"auth-service/utils"
-	"errors"
-	"fmt"
 )
 
 type UserService struct {
@@ -59,7 +60,6 @@ func (s *UserService) UpdateUser(user *models.UserUpdate) error {
 	}
 
 	if objectID == nil {
-
 		return errors.New("User not found")
 	}
 

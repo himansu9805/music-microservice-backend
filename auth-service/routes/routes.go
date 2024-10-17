@@ -16,6 +16,7 @@ func SetupRoutes(router *gin.Engine, userService *services.UserService) {
 	{
 		userRouter.POST("/register", userController.CreateUser)
 		userRouter.POST("/login", userController.LoginUser)
+		userRouter.GET("/logout", userController.LogoutUser)
 	}
 
 	tokenRouter := router.Group("/token")

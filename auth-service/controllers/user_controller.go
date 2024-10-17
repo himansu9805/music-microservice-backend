@@ -121,7 +121,6 @@ func (uc *UserController) GetProfile(c *gin.Context) {
 
 func (uc *UserController) RefreshUser(c *gin.Context) {
 	authHeader := c.GetHeader("Authorization")
-	
 
 	if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header missing or invalid"})
@@ -146,4 +145,19 @@ func (uc *UserController) RefreshUser(c *gin.Context) {
 	})
 
 	c.JSON(http.StatusOK, gin.H{"message": "User token refreshed successfully"})
+}
+
+func (uc *UserController) LogoutUser(c *gin.Context) {
+	http.SetCookie(c.Writer, &http.Cookie{
+		Name:    "accessToken",
+		Value:   "",
+		Expires: time.Now(),
+	})
+	http.SetCookie(c.Writer, &http.Cookie{
+		Name:    "refreshToken",
+		Value:   "",
+		Expires: time.Now(),
+	})
+
+	c.JSON(http.StatusOK, gin.H{"message": "User logged out successfully"})
 }

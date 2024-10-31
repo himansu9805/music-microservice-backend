@@ -1,15 +1,13 @@
 package controllers
 
 import (
-	"fmt"
+	"auth-service/models"
+	"auth-service/services"
+	"auth-service/utils"
 	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
-
-	"auth-service/models"
-	"auth-service/services"
-	"auth-service/utils"
 )
 
 type UserController struct {
@@ -107,8 +105,6 @@ func (uc *UserController) UpdateUser(c *gin.Context) {
 func (uc *UserController) GetProfile(c *gin.Context) {
 	userId := c.GetString("userId")
 
-	fmt.Println("userId: ", userId)
-
 	userProfile, err := uc.userService.GetProfile(userId)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -131,4 +127,24 @@ func (uc *UserController) LogoutUser(c *gin.Context) {
 	})
 
 	c.JSON(http.StatusOK, gin.H{"message": "User logged out successfully"})
+}
+
+func (uc *UserController) ChangePassword(c *gin.Context) {
+	var userPassword models.UserPassword
+
+	// Bind JSON body to user password model
+	if err := c.ShouldBindJSON(&userPassword); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	userId := c.GetString("userId")
+
+	err := uc.userService.ChangePassword(userId, &userPassword)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Password changed successfully"})
 }

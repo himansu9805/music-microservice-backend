@@ -1,11 +1,11 @@
 package routes
 
 import (
-	"github.com/gin-gonic/gin"
-
 	"auth-service/controllers"
 	"auth-service/middlewares"
 	"auth-service/services"
+
+	"github.com/gin-gonic/gin"
 )
 
 func SetupRoutes(router *gin.Engine, userService *services.UserService) {
@@ -24,11 +24,13 @@ func SetupRoutes(router *gin.Engine, userService *services.UserService) {
 	{
 		tokenRouter.GET("/refresh", tokenController.RefreshAccessToken)
 		tokenRouter.GET("/validate", tokenController.ValidateToken)
+		tokenRouter.GET("/revoke", tokenController.RevokeToken)
 	}
 
 	accountRouter := router.Group("/account").Use(middlewares.AuthMiddleware())
 	{
 		accountRouter.PUT("/update", userController.UpdateUser)
 		accountRouter.GET("/profile", userController.GetProfile)
+		accountRouter.POST("/change-password", userController.ChangePassword)
 	}
 }

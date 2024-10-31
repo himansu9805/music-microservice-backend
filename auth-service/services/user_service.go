@@ -83,3 +83,36 @@ func (s *UserService) GetProfile(userId string) (*models.UserProfile, error) {
 
 	return user, nil
 }
+
+func (s *UserService) ChangePassword(userId string, userPassword *models.UserPassword) error {
+	user, err := s.userRepo.FindByID(userId)
+	fmt.Println("User: ", user)
+	if err != nil {
+		return err
+	}
+
+	if user == nil {
+		return errors.New("user not found")
+	}
+
+	oldHashedPassword, err := s.userRepo.GetCurrentHashPassword(userPassword.NewPassword)
+	if err != nil {
+		return err
+	}
+
+	if utils.ComparePasswords(oldHashedPassword, userPassword.OldPassword) != nil {
+		return errors.New("invalid password")
+	}
+
+	hashedPassword, err := utils.HashPassword(userPassword.NewPassword)
+	if err != nil {
+		return err
+	}
+
+	_, err = s.userRepo.ChangePassword(user, hashedPassword)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

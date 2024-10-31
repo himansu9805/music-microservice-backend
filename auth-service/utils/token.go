@@ -89,3 +89,14 @@ func ValidateAndRefreshToken(refreshToken string) (string, error) {
 	}
 	return GenerateAccessToken(objectID)
 }
+
+func RevokeToken(accessToken string) error {
+	_, claims, err := parseToken(accessToken)
+	if err != nil {
+		return err
+	}
+
+	userId := claims["userId"].(string)
+	fmt.Println("Revoking token for user: ", userId)
+	return nil
+}

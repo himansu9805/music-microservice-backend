@@ -17,7 +17,7 @@ func NewTokenController() *TokenController {
 }
 
 func (tc *TokenController) RefreshAccessToken(c *gin.Context) {
-	authHeader := c.GetHeader("Authorization")
+	authHeader := c.GetHeader("	")
 
 	if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header missing or invalid"})
@@ -59,4 +59,21 @@ func (tc *TokenController) ValidateToken(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Token is valid"})
+}
+
+func (tc *TokenController) RevokeToken(c *gin.Context) {
+	accessToken := c.GetHeader("Authorization")
+	if accessToken == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Access token not provided"})
+		return
+	}
+
+	accessToken = strings.Replace(accessToken, "Bearer ", "", 1)
+	err := utils.RevokeToken(accessToken)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid access token"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Token revoked successfully"})
 }

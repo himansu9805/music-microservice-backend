@@ -1,3 +1,5 @@
 .env
 .idx/*
 .vscode/*
+**/bin/*
+**/tmp/*

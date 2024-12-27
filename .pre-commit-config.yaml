@@ -1,23 +1,70 @@
-# See https://pre-commit.com for more information
-# See https://pre-commit.com/hooks.html for more hooks
+default_stages: [pre-commit]
 repos:
-  - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v5.0.0
-    hooks:
-      - id: trailing-whitespace
-      - id: end-of-file-fixer
-      - id: check-yaml
-      - id: check-added-large-files
-  - repo: https://github.com/asottile/reorder-python-imports
-    rev: v3.14.0
-    hooks:
-      - id: reorder-python-imports
-  - repo: https://github.com/PyCQA/flake8
-    rev: 7.1.1
-    hooks:
-      - id: flake8
-  - repo: https://github.com/psf/black-pre-commit-mirror
-    rev: 24.10.0
-    hooks:
-      - id: black
-        language_version: python3.13
+- repo: https://github.com/pre-commit/pre-commit-hooks
+  rev: v5.0.0
+  hooks:
+  - id: trailing-whitespace
+    exclude: tests/data
+  - id: end-of-file-fixer
+  - id: check-yaml
+  - id: check-json
+  - id: check-toml
+  - id: check-added-large-files
+    exclude: tests/data
+    args: [--maxkb=3072]
+  - id: detect-private-key
+  - id: debug-statements
+- repo: https://github.com/psf/black
+  rev: 24.10.0
+  hooks:
+  - id: black
+    args: [--line-length=79]
+- repo: https://github.com/PyCQA/autoflake
+  rev: v2.3.1
+  hooks:
+  - id: autoflake
+    name: autoflake
+    args: [--in-place, --remove-all-unused-imports]
+    exclude: tests
+    language: python
+    files: \.py$
+- repo: https://github.com/PyCQA/flake8
+  rev: 7.1.1
+  hooks:
+  - id: flake8
+    exclude: tests
+    args: [--max-line-length=79]
+    additional_dependencies:
+    - flake8-typing-imports
+    - flake8-docstrings
+- repo: https://github.com/pycqa/isort
+  rev: 5.13.2
+  hooks:
+  - id: isort
+    name: isort (python)
+    args: [--line-length=79, --force-single-line-imports, --profile, black]
+    additional_dependencies: [setuptools]
+- repo: https://github.com/macisamuele/language-formatters-pre-commit-hooks
+  rev: v2.14.0
+  hooks:
+  - id: pretty-format-yaml
+    args: [--autofix, --indent, '2']
+- repo: local
+  hooks:
+  - id: bandit
+    name: bandit
+    entry: bandit
+    language: python
+    exclude: tests
+    types: [python]
+    args:
+    - --skip
+    - B404,B603,B311
+  - id: pylint
+    name: pylint
+    entry: pylint
+    language: system
+    types: [python]
+    exclude: tests
+    args:
+    - --fail-under=9.0

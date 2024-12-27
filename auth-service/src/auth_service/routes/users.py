@@ -1,15 +1,17 @@
 """Users routes module."""
-from fastapi import APIRouter
-from fastapi import Response
 
-from auth_service.lib.models import UserLogin
 from auth_service.lib.models import NewUserRequest
+from auth_service.lib.models import UserLogin
 from auth_service.lib.models import UserResponse
-from auth_service.lib.user import startup
-from auth_service.lib.user import shutdown
 from auth_service.lib.user import create_user
 from auth_service.lib.user import login_user
 from auth_service.lib.user import logout_user
+from auth_service.lib.user import shutdown
+from auth_service.lib.user import startup
+from fastapi import APIRouter
+from fastapi import Depends
+from fastapi import Response
+from fastapi.security import HTTPBearer
 
 user_router = APIRouter(
     prefix="/users",
@@ -32,6 +34,8 @@ async def login(user_data: UserLogin, response: Response) -> UserResponse:
 
 
 @user_router.get("/logout")
-async def logout(response: Response) -> None:
+async def logout(
+    response: Response, token: str = Depends(HTTPBearer())
+) -> None:
     """This is the logout endpoint."""
-    return logout_user(response)
+    return logout_user(response, token)

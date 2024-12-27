@@ -1,0 +1,2 @@
+[MASTER]
+init-hook='import os; import sys; cwd=os.getcwd(); sys.path.append(f"{cwd}/auth-service/src")'

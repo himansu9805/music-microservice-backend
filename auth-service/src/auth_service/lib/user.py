@@ -1,24 +1,25 @@
 """Users lib module."""
-import logging
 
-from fastapi import HTTPException
-from fastapi import status
-from fastapi import Response
+import logging
 
 from auth_service import const
 from auth_service.lib.models import NewUser
-from auth_service.lib.models import UserResponse
 from auth_service.lib.models import UserLogin
 from auth_service.lib.models import UserLogoutResponse
+from auth_service.lib.models import UserResponse
 from auth_service.utils.mongo_connect import MongoConnect
 from auth_service.utils.password_handler import PasswordHandler
 from auth_service.utils.token_manager import create_access_token
 from auth_service.utils.token_manager import create_refresh_token
+from auth_service.utils.token_manager import decode_token
+from fastapi import HTTPException
+from fastapi import Response
+from fastapi import status
 
 logger = logging.getLogger(__name__)
 
-mongo_client = None
-password_handler = None
+MONGO_CLIENT = None
+PASSWORD_HANDLER = None
 
 
 def check_config():
@@ -38,31 +39,31 @@ def check_config():
     if not const.COLLECTION_NAME:
         message += "COLLECTION_NAME"
     if message:
-        raise Exception(message + " environment variables not set")
+        raise EnvironmentError(message + " environment variables not set")
 
 
 def startup():
     """
     Initializes the MongoDB connection and password handler.
     """
-    global mongo_client, password_handler
+    global MONGO_CLIENT, PASSWORD_HANDLER  # pylint: disable=global-statement
     check_config()
-    mongo_client = MongoConnect(
+    MONGO_CLIENT = MongoConnect(
         uri=const.MONGO_URI,
         database=const.DATABASE_NAME,
-        collection=const.COLLECTION_NAME
+        collection=const.COLLECTION_NAME,
     )
-    if mongo_client:
+    if MONGO_CLIENT:
         logger.info("MongoDB connection established")
-    password_handler = PasswordHandler()
+    PASSWORD_HANDLER = PasswordHandler()
 
 
 def shutdown():
     """
     Shutdown function to close the MongoDB client connection if it exists.
     """
-    if mongo_client:
-        mongo_client.client.close()
+    if MONGO_CLIENT:
+        MONGO_CLIENT.client.close()
         logger.info("MongoDB connection closed")
 
 
@@ -83,28 +84,26 @@ def create_user(user_data: NewUser) -> UserResponse | HTTPException:
     try:
 
         user_data_dict = user_data.model_dump()
-        user_data_dict.pop('password')
-        new_user = NewUser(**user_data_dict,
-                           password=password_handler.hash_password(
-                               user_data.password
-                           ))
-        if mongo_client.get_collection().insert_one(new_user.model_dump()):
+        user_data_dict.pop("password")
+        new_user = NewUser(
+            **user_data_dict,
+            password=PASSWORD_HANDLER.hash_password(user_data.password),
+        )
+        if MONGO_CLIENT.get_collection().insert_one(new_user.model_dump()):
             return UserResponse(**new_user.model_dump())
-        else:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Error creating user"
-            )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error creating user",
+        )
     except Exception as e:
-        logger.error(f"Error creating user: {e}")
+        logger.error("Error creating user: %s", e)
         if isinstance(e, HTTPException):
             raise e
         raise HTTPException(status_code=500, detail="Error creating user")
 
 
 def login_user(
-    user_data: UserLogin,
-    response: Response
+    user_data: UserLogin, response: Response
 ) -> UserResponse | HTTPException:
     """
     Authenticates a user and sets access and refresh tokens in cookies.
@@ -123,20 +122,17 @@ def login_user(
     """
     try:
         user_data_dict = user_data.model_dump()
-        user = mongo_client.get_collection().find_one(
+        user = MONGO_CLIENT.get_collection().find_one(
             {"email": user_data_dict["email"]}
         )
         if user:
-            if password_handler.verify_password(
-                    user_data.password, user["password"]
+            if PASSWORD_HANDLER.verify_password(
+                user_data.password, user["password"]
             ):
                 user.pop("_id")
                 user.pop("password")
-                user["created_at"] = user["created_at"].strftime(
-                    "%Y-%m-%dT%H:%M:%SZ")
-                user["updated_at"] = user["updated_at"].strftime(
-                    "%Y-%m-%dT%H:%M:%SZ")
-                logger.info(f"{user}")
+                user["created_at"] = user["created_at"].isoformat()
+                user["updated_at"] = user["updated_at"].isoformat()
                 response.set_cookie(
                     key="access_token",
                     value=f"{create_access_token(user)}",
@@ -146,24 +142,23 @@ def login_user(
                     value=f"{create_refresh_token(user)}",
                 )
                 return UserResponse(**user)
-            else:
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Invalid email or password"
-                )
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid email or password",
+            )
         else:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid email or password"
+                detail="Invalid email or password",
             )
     except Exception as e:
-        logger.error(f"Error logging in user: {e}")
+        logger.error("Error logging in user: %s", e)
         if isinstance(e, HTTPException):
             raise e
         raise HTTPException(status_code=500, detail="Error logging in user")
 
 
-def logout_user(response: Response) -> UserLogoutResponse:
+def logout_user(response: Response, token: str) -> UserLogoutResponse:
     """
     Logs out the user by deleting authentication cookies.
 
@@ -174,6 +169,11 @@ def logout_user(response: Response) -> UserLogoutResponse:
         UserLogoutResponse: A response object indicating the user has been
         logged out.
     """
+    decoded_token = decode_token(token.credentials)
+    if not decoded_token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token"
+        )
     response.delete_cookie(key="access_token")
     response.delete_cookie(key="refresh_token")
     return UserLogoutResponse(message="User logged out")

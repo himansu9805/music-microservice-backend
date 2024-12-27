@@ -1,16 +1,18 @@
 """Models for the auth service."""
+
 from datetime import datetime
 from enum import Enum
-
-from pydantic import BaseModel, Field
 from typing import Optional
+
+from pydantic import BaseModel
+from pydantic import Field
 
 
 class Role(str, Enum):
     """Roles enum."""
 
-    user = "user"
-    admin = "admin"
+    USER = "user"
+    ADMIN = "admin"
 
 
 class NewUser(BaseModel):
@@ -20,7 +22,7 @@ class NewUser(BaseModel):
     password: str = Field(..., example="password")
     first_name: str = Field(..., example="John")
     last_name: str = Field(..., example="Doe")
-    role: Optional[Role] = Field(default=Role.user, example="user")
+    role: Optional[Role] = Field(default=Role.USER, example="user")
     active: Optional[bool] = Field(default=True, example=True)
     created_at: Optional[datetime] = Field(
         default=datetime.now(),
@@ -48,7 +50,7 @@ class UserResponse(BaseModel):
     first_name: str = Field(..., example="John")
     last_name: str = Field(..., example="Doe")
     role: str = Field(..., example="user")
-    active: bool = Field(True, example=True)
+    active: bool = Field(..., example=True)
     created_at: datetime = Field(..., example="2021-01-01T00:00:00Z")
     updated_at: datetime = Field(..., example="2021-01-01T00:00:00Z")
 

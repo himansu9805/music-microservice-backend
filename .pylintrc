@@ -1,2 +1,2 @@
 [MASTER]
-init-hook='import os; import sys; cwd=os.getcwd(); sys.path.append(f"{cwd}/auth-service/src")'
+init-hook='import os; import sys; cwd=os.getcwd(); sys.path.append(f"{cwd}/auth-service/src"); sys.path.append(f"{cwd}/music-service/src")'

@@ -19,7 +19,7 @@ def on_request(ch, method, properties, body):
         body (str): The message body.
     """
     logger.info(" [x] Received %s", body)
-    token = json.loads(body)
+    token = json.loads(body).get("token")
     response = validate_token(token)
     ch.basic_publish(
         exchange="",

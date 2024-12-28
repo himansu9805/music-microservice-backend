@@ -3,18 +3,17 @@
 from fastapi import APIRouter
 from fastapi import Depends
 from fastapi.security import HTTPBearer
-from music_service.lib.music import shutdown
-from music_service.lib.music import startup
+from music_service.lib.music import music_lib
 
 music_router = APIRouter(
     prefix="/music",
     tags=["music"],
-    on_startup=[startup],
-    on_shutdown=[shutdown],
+    on_startup=[music_lib.startup],
+    on_shutdown=[music_lib.shutdown],
 )
 
 
 @music_router.get("/songs")
 async def get_songs(token: str = Depends(HTTPBearer())) -> None:
     """This is the get songs endpoint."""
-    return {"songs": ["song1", "song2", "song3"]}
+    return music_lib.list_songs(token)

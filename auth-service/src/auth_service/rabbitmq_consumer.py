@@ -21,6 +21,7 @@ def on_request(ch, method, properties, body):
     logger.info(" [x] Received %s", body)
     token = json.loads(body).get("token")
     response = validate_token(token)
+    logger.info(" [.] Response: %s", response)
     ch.basic_publish(
         exchange="",
         routing_key=properties.reply_to,
@@ -29,6 +30,7 @@ def on_request(ch, method, properties, body):
         ),
         body=json.dumps({"valid": response}),
     )
+    logger.info(" [x] Sent response")
     ch.basic_ack(delivery_tag=method.delivery_tag)
 
 

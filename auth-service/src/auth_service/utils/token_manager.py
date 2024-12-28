@@ -82,3 +82,18 @@ def decode_token(token: str, refresh: bool = False):
         return None
     except jwt.InvalidTokenError:
         return None
+
+
+def validate_token(token: str, refresh: bool = False):
+    """
+    Validates a JWT token.
+
+    Args:
+        token (str): The JWT token to validate.
+        refresh (bool, optional): Flag to indicate if the refresh token secret
+        key should be used. Defaults to False.
+
+    Returns:
+        bool: True if the token is valid and not expired, otherwise False.
+    """
+    return decode_token(token, refresh) is not None

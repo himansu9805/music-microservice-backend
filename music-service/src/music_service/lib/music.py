@@ -15,7 +15,6 @@ from music_service.lib.models import SongMetadata
 from music_service.lib.models import SongsList
 from music_service.utils.mongo_connect import MongoConnect
 from music_service.utils.song_information import SongInformation
-from music_service.utils.token_manager import TokenManager
 
 logger = logging.getLogger(__name__)
 logger.addFilter(logging.Filter("music_service.lib.music"))
@@ -26,7 +25,6 @@ class MusicLib:
 
     def __init__(self):
         """Initialize the music library."""
-        self.token_manager = None
         self.s3_client = None
         self.metadata_mongo_client = None
         self.password_handler = None
@@ -49,14 +47,17 @@ class MusicLib:
         if not const.DATABASE_NAME:
             message += "DATABASE_NAME, "
         if not const.METADATA_COLLECTION_NAME:
-            message += "METADATA_COLLECTION_NAME"
+            message += "METADATA_COLLECTION_NAME, "
+        if not const.SPOTIFY_CLIENT_ID:
+            message += "SPOTIFY_CLIENT_ID, "
+        if not const.SPOTIFY_CLIENT_SECRET:
+            message += "SPOTIFY_CLIENT_SECRET"
         if message:
-            raise EnvironmentError(message + "environment variables not set")
+            raise EnvironmentError(message + " environment variables not set")
 
     def startup(self):
         """This is the startup function of the music library."""
         self._check_config()
-        self.token_manager = TokenManager()
         self.s3_client = boto3.client(
             "s3",
             endpoint_url=f"http://{const.MINIO_ENDPOINT}",
@@ -73,7 +74,6 @@ class MusicLib:
 
     def shutdown(self):
         """This is the shutdown function of the music library."""
-        self.token_manager = None
         self.s3_client = None
         logger.info("Music library stopped")
 
@@ -94,15 +94,38 @@ class MusicLib:
                 status_code=500, detail=f"Error streaming file: {str(e)}"
             ) from e
 
-    def list_songs(self, token: str) -> SongsList:
+    def list_songs(self) -> SongsList:
         """List all the songs."""
-        if not self.token_manager.validate(token.credentials):
-            raise HTTPException(status_code=401, detail="Unauthorized")
         try:
             response = self.s3_client.list_objects_v2(
                 Bucket=const.MINIO_BUCKET_NAME
             )
-            songs = [obj["Key"] for obj in response.get("Contents", [])]
+            songs_keys = [obj["Key"] for obj in response.get("Contents", [])]
+            songs = []
+            for song_key in songs_keys:
+                metadata = (
+                    self.metadata_mongo_client.get_collection().find_one(
+                        {"song_id": song_key}
+                    )
+                )
+                if not metadata:
+                    metadata = {
+                        "song_id": song_key,
+                        "title": song_key,
+                        "artist": "Unknown",
+                        "album": "Unknown",
+                        "release_date": "Unknown",
+                        "images": [
+                            {
+                                "url": "https://www.afrocharts.com/"
+                                "images/song_cover.png",
+                                "width": 500,
+                                "height": 500,
+                            }
+                        ],
+                    }
+                metadata.pop("_id")
+                songs.append(SongMetadata(**metadata))
             return SongsList(songs=songs)
         except NoCredentialsError:
             raise HTTPException(
@@ -122,8 +145,10 @@ class MusicLib:
                 status_code=500, detail=f"Error listing songs: {str(e)}"
             ) from e
 
-    def stream_music(self, file_key: str, music_range: str = Header(None)):
-        """Stream music."""
+    def stream_song(
+        self, file_key: str, music_range: str = Header(None)
+    ) -> StreamingResponse:
+        """Stream song."""
         try:
             file_head = self.s3_client.head_object(
                 Bucket=const.MINIO_BUCKET_NAME, Key=file_key
@@ -224,6 +249,8 @@ class MusicLib:
                 )
             if "." in filtered_file_name:
                 filtered_file_name = filtered_file_name.rsplit(".", 1)[0]
+            if filtered_file_name.endswith(")"):
+                filtered_file_name = filtered_file_name.rsplit("(", 1)[0]
             song_details = self.song_info_client.get_song_metadata(
                 filtered_file_name
             )
@@ -233,6 +260,14 @@ class MusicLib:
                 "artist": "Unknown",
                 "album": "Unknown",
                 "release_date": "Unknown",
+                "images": [
+                    {
+                        "url": "https://www.afrocharts.com/"
+                        "images/song_cover.png",
+                        "width": 500,
+                        "height": 500,
+                    }
+                ],
             }
             if song_details:
                 metadata = {
@@ -241,6 +276,7 @@ class MusicLib:
                     "artist": song_details["artist"],
                     "album": song_details["album"],
                     "release_date": song_details["release_date"],
+                    "images": song_details["images"],
                 }
             self.metadata_mongo_client.get_collection().insert_one(metadata)
             return SongMetadata(**metadata)

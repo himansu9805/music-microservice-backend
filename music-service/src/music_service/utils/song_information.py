@@ -52,6 +52,7 @@ class SongInformation:
             "release_date": raw_details["album"]["release_date"],
             "duration": raw_details["duration_ms"],
             "popularity": raw_details["popularity"],
+            "images": raw_details["album"]["images"],
         }
 
     def get_song_metadata(self, song_name: str) -> dict:
@@ -74,4 +75,4 @@ class SongInformation:
 
 if __name__ == "__main__":
     song_info = SongInformation()
-    print(song_info.get_song_metadata("Linkin Park - Castle Of Glass.mp3"))
+    print(song_info.get_song_metadata("Paper Rings"))
